@@ -1,7 +1,6 @@
 import json
-import os
-import pickle
 import random
+import subprocess
 from datetime import datetime
 
 tasks = {}
@@ -37,14 +36,14 @@ def findTask(keyword):
 
 
 
-def saveTasks(fileName="tasks.pkl"):
-    with open(fileName, "wb") as f:
-        pickle.dump(tasks, f)
+def saveTasks(fileName="tasks_saved.json"):
+    with open(fileName, "w") as f:
+        json.dump(tasks, f, indent=2)
 
 
-def loadTasks(fileName="tasks.pkl"):
-    with open(fileName, "rb") as f:
-        return pickle.load(f)
+def loadTasks(fileName="tasks_saved.json"):
+    with open(fileName, "r") as f:
+        return json.load(f)
 
 
 def exportJson(fileName="tasks.json"):
@@ -54,7 +53,11 @@ def exportJson(fileName="tasks.json"):
 
 def remindByEmail(address):
     # Helper kept for the lab: not called by the demo
-    os.system("mail -s 'Pending tasks' " + address + " < tasks.json")
+    if not address or address.startswith("-") or any(c.isspace() for c in address):
+        raise ValueError("Invalid email address")
+    with open("tasks.json", "rb") as f:
+        subprocess.run(["mail", "-s", "Pending tasks", address],
+                       stdin=f, check=True)
 
 
 def main():
@@ -67,7 +70,7 @@ def main():
     print("Pending tasks:", pendingTasks())
     print("Task id for 'plumber':", findTask("plumber"))
     print("Task id for 'gym':", findTask("gym")) # returns None silently
-    suggestion = random.choice(pendingTasks())
+    suggestion = random.choice(pendingTasks())  # nosec B311
     print("Try this next:", suggestion)
     saveTasks()
     restored = loadTasks()
